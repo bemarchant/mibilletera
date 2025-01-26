@@ -1,0 +1,54 @@
+name: Deploy to AWS Lambda
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies and prepare deployment package
+      run: |
+        mkdir package
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt --target ./package
+        cp -R src/* package/
+        cd package && zip -r ../deployment_package.zip .
+
+    - name: Create Lambda function (if it doesn't exist)
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: us-east-1
+      run: |
+        set +e  # No fallar si el comando de creación falla
+        aws lambda create-function \
+          --function-name mibilletera-lambda \
+          --runtime python3.9 \
+          --role arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_LAMBDA_ROLE \
+          --handler main.lambda_handler \
+          --timeout 30 \
+          --memory-size 128 \
+          --zip-file fileb://deployment_package.zip
+        set -e  # Restaurar el comportamiento de error estándar
+
+    - name: Update Lambda function code
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: us-east-1
+      run: |
+        aws lambda update-function-code \
+          --function-name mibilletera-lambda \
+          --zip-file fileb://deployment_package.zip

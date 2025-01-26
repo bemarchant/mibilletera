@@ -1,0 +1,6 @@
+venv/
+token.json
+credentials.json
+mibilletera-448919-5970eb938a1a.json
+__pycache__/
+.DS_Store
