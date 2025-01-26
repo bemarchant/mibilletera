@@ -26,13 +26,13 @@ jobs:
         cp -R src/* package/
         cd package && zip -r ../deployment_package.zip .
 
-    - name: Create Lambda function (if it doesn't exist)
+    - name: Create Lambda function if it doesn't exist
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: us-east-1
       run: |
-        set +e  # No fallar si el comando de creación falla
+        set +e  # Permitir que falle si ya existe
         aws lambda create-function \
           --function-name mibilletera-lambda \
           --runtime python3.9 \
@@ -41,7 +41,7 @@ jobs:
           --timeout 30 \
           --memory-size 128 \
           --zip-file fileb://deployment_package.zip
-        set -e  # Restaurar el comportamiento de error estándar
+        set -e
 
     - name: Update Lambda function code
       env:
